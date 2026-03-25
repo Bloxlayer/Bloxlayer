@@ -20,11 +20,29 @@
 
 </div>
 
-<p align="center">
-  <a href="https://discord.gg/5tJBqBH8ck">
-    <img src="https://invidget.switchblade.xyz/5tJBqBH8ck">
-  </a>
-</p>
+## Frequently Asked Questions (FAQ)
+
+<details>
+  <summary><strong>Can it get you banned?</strong></summary>
+  <br>
+
+  No. Bloxlayer does not inject cheats, exploits, or bypass Roblox security.
+  as its just a simple overlay software for Roblox :)
+</details>
+
+<br>
+
+<details>
+  <summary><strong>Is it a virus?</strong></summary>
+  <br>
+
+  No. Bloxlayer is fully open-source, meaning anyone can inspect the code.  
+  If your antivirus flags it
+
+  You can verify the source code yourself at:
+  https://github.com/Bloxlayer/Bloxlayer
+  or just scroll up dummy
+</details>
 
 ## License
 
@@ -34,6 +52,20 @@
     <td style="width: 33%; text-align: right;"><a href="https://github.com/Bloxlayer/Bloxlayer/blob/main/LICENSE" target="_blank">MIT</a></td>
   </tr>
 </table>
+
+## Star History
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=Bloxlayer%2FBloxlayer&type=timeline&legend=top-left">
+    <img src="https://api.star-history.com/svg?repos=Bloxlayer%2FBloxlayer&type=timeline&legend=top-left&theme=dark" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://discord.gg/5tJBqBH8ck">
+    <img src="https://invidget.switchblade.xyz/5tJBqBH8ck">
+  </a>
+</p>
 
 > [!WARNING]
 > Bloxlayer is a **WIP** overlay app for Roblox, designed to make the game more fun and add customizable overlays.
