@@ -1,7 +1,7 @@
 <h1 align="center"><b>Bloxlayer</b></h1>
 
 <p align="center">
-<img src="https://raw.githubusercontent.com/Bloxlayer/Bloxlayer/main/Images/RiShde.png" alt="preview" width="30%"/>
+<img src="" alt="preview" width="30%"/>
 </p>
 
 <p align="center">
