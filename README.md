@@ -73,8 +73,8 @@
 
 [shield-repo-downloads]: https://img.shields.io/github/downloads/Bloxlayer/Bloxlayer/latest/total?color=981bfe
 [shield-repo-total]:     https://img.shields.io/github/downloads/Bloxlayer/Bloxlayer/total?color=8a2be2
-[shield-repo-latest]:    https://img.shields.io/github/v/release/KloBraticc/RiShade?color=7a39fb
-[shield-repo-stars]:     https://img.shields.io/github/stars/KloBraticc/RiShade?color=ffd700
+[shield-repo-latest]:    https://img.shields.io/github/v/release/Bloxlayer/Bloxlayer?color=7a39fb
+[shield-repo-stars]:     https://img.shields.io/github/stars/Bloxlayer/Bloxlayer?color=ffd700
 [shield-discord-server]: https://img.shields.io/discord/1327967202015580223?logo=discord&logoColor=white&label=Discord&color=4d3dff
 
 [repo-releases]:         https://github.com/Bloxlayer/Bloxlayer/releases
