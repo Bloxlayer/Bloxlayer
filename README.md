@@ -20,7 +20,7 @@
 
 </div>
 
-## Frequently Asked Questions (FAQ)
+## (FAQ)
 
 <details>
   <summary><strong>Can it get you banned?</strong></summary>
