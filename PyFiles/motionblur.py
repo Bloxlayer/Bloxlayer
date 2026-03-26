@@ -61,6 +61,7 @@ class Cfg:
     strength = 0.55
     gui_visible = True
     interp_steps = 4
+    fps_limit = MONITOR_HZ
 
     def load(self):
         try:
@@ -69,7 +70,7 @@ class Cfg:
             self.strength = float(d.get("strength", self.strength))
             self.enabled = bool(d.get("enabled", self.enabled))
             self.interp_steps = int(d.get("interp_steps", self.interp_steps))
-            print(f"[CBlur] config loaded from {_CFG_FILE}")
+            self.fps_limit = float(d.get("fps_limit", self.fps_limit))
         except Exception:
             pass
 
@@ -82,6 +83,7 @@ class Cfg:
                         "strength": self.strength,
                         "enabled": self.enabled,
                         "interp_steps": self.interp_steps,
+                        "fps_limit": self.fps_limit,
                     },
                     f,
                     indent=2,
@@ -424,7 +426,7 @@ def apply_theme():
 def draw_panel(render_fps, grab_fps):
     if not cfg.gui_visible:
         return
-    imgui.set_next_window_size(310, 210, imgui.ONCE)
+    imgui.set_next_window_size(420, 280, imgui.ONCE)
     imgui.set_next_window_position(16, 16, imgui.ONCE)
     imgui.set_next_window_bg_alpha(0.94)
     imgui.begin(
@@ -471,7 +473,7 @@ def draw_panel(render_fps, grab_fps):
         psc(imgui.COLOR_BUTTON, BTNON if active else BG3)
         psc(imgui.COLOR_BUTTON_HOVERED, BTNONH if active else ACCD)
         psc(imgui.COLOR_TEXT, WHITE if active else TXT)
-        if imgui.button(f"{name}##p{name}", 55, 0):
+        if imgui.button(f"{name}##p{name}", 60, 0):
             cfg.strength = val
         imgui.pop_style_color(3)
         imgui.same_line()
@@ -487,6 +489,19 @@ def draw_panel(render_fps, grab_fps):
     changed, new_steps = imgui.slider_int("##steps", cfg.interp_steps, 1, 16, "")
     if changed:
         cfg.interp_steps = new_steps
+
+    imgui.spacing()
+    psc(imgui.COLOR_TEXT, TXTD)
+    imgui.text("  FPS Limit")
+    imgui.pop_style_color()
+    imgui.same_line()
+    psc(imgui.COLOR_TEXT, ACCENT)
+    imgui.text(f"  {int(cfg.fps_limit)}")
+    imgui.pop_style_color()
+
+    changed, new_fps = imgui.slider_float("##fpslimit", cfg.fps_limit, 30.0, 1000.0, "")
+    if changed:
+        cfg.fps_limit = new_fps
 
     imgui.spacing()
     imgui.pop_item_width()
@@ -597,10 +612,13 @@ def main():
         glTexParameteri(GL_TEXTURE_2D, p, v)
 
     fbytes = SW * SH * (4 if _is_4ch else 3)
-    pbo = glGenBuffers(1)
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo)
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, fbytes, None, GL_STREAM_DRAW)
+    pbos = [glGenBuffers(1), glGenBuffers(1)]
+    for p in pbos:
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p)
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, fbytes, None, GL_STREAM_DRAW)
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+    pbo_write = 0
+    pbo_filled = False
 
     ping = True
     has_frame = False
@@ -615,7 +633,9 @@ def main():
     top_tick = 0
     prev_strength = cfg.strength
     prev_interp_steps = cfg.interp_steps
+    prev_fps_limit = cfg.fps_limit
     _save_timer = 0
+    decay = 0.0
 
     time.sleep(0.35)
     grabber = _make_grabber()
@@ -657,9 +677,10 @@ def main():
         draw_quad(vao)
 
     while not glfw.window_should_close(win):
+        frame_start = time.perf_counter()
+
         glfw.poll_events()
         impl.process_inputs()
-
         f7 = bool(win32api.GetAsyncKeyState(win32con.VK_F7) & 0x8000)
         if f7 and not prev_f7:
             cfg.gui_visible = not cfg.gui_visible
@@ -673,10 +694,12 @@ def main():
             cfg.strength != prev_strength
             or cfg.enabled != prev_en
             or cfg.interp_steps != prev_interp_steps
+            or cfg.fps_limit != prev_fps_limit
         ):
             _save_timer = 60
             prev_strength = cfg.strength
             prev_interp_steps = cfg.interp_steps
+            prev_fps_limit = cfg.fps_limit
 
         if cfg.enabled != prev_en:
             if cfg.enabled:
@@ -686,6 +709,7 @@ def main():
                 interp_ready = False
                 shown = False
                 ping = True
+                pbo_filled = False
                 if not grabber.is_alive():
                     time.sleep(0.35)
                     grabber = _make_grabber()
@@ -727,39 +751,30 @@ def main():
             dt = now - last_t
             last_t = now
             if dt > 0:
-                render_fps = (
-                    (1 / dt)
-                    if render_fps == 0
-                    else render_fps + 0.05 * (1 / dt - render_fps)
-                )
+                render_fps = render_fps + 0.05 * (1.0 / dt - render_fps)
             continue
 
         frame = grabber.consume()
         if frame is not None:
             glBindTexture(GL_TEXTURE_2D, raw_tex)
-            if not has_frame:
-                glTexImage2D(
-                    GL_TEXTURE_2D,
-                    0,
-                    _gl_ifmt,
-                    SW,
-                    SH,
-                    0,
-                    _gl_fmt,
-                    GL_UNSIGNED_BYTE,
-                    frame,
-                )
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbos[pbo_write])
+            glBufferSubData(GL_PIXEL_UNPACK_BUFFER, 0, fbytes, frame)
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
 
-                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo)
-                glBufferSubData(GL_PIXEL_UNPACK_BUFFER, 0, fbytes, frame)
-                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
-                has_frame = True
-                if not shown and hwnd:
-                    win32gui.ShowWindow(hwnd, 5)
-                    shown = True
-            else:
-                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo)
-                glBufferSubData(GL_PIXEL_UNPACK_BUFFER, 0, fbytes, frame)
+            if pbo_filled:
+                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbos[1 - pbo_write])
+                if not has_frame:
+                    glTexImage2D(
+                        GL_TEXTURE_2D,
+                        0,
+                        _gl_ifmt,
+                        SW,
+                        SH,
+                        0,
+                        _gl_fmt,
+                        GL_UNSIGNED_BYTE,
+                        None,
+                    )
                 glTexSubImage2D(
                     GL_TEXTURE_2D,
                     0,
@@ -772,6 +787,27 @@ def main():
                     None,
                 )
                 glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0)
+            else:
+                glTexImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    _gl_ifmt,
+                    SW,
+                    SH,
+                    0,
+                    _gl_fmt,
+                    GL_UNSIGNED_BYTE,
+                    frame,
+                )
+                pbo_filled = True
+
+            pbo_write = 1 - pbo_write
+
+            if not has_frame:
+                has_frame = True
+            if not shown and hwnd:
+                win32gui.ShowWindow(hwnd, 5)
+                shown = True
 
         if not has_frame:
             glClearColor(0, 0, 0, 0)
@@ -781,11 +817,11 @@ def main():
 
         glViewport(0, 0, SW, SH)
 
+        MAX_DECAY = 0.95
+        decay_single = float(np.clip(cfg.strength * MAX_DECAY, 0.0, MAX_DECAY))
+        decay = float(decay_single ** (1.0 / max(cfg.interp_steps, 1)))
+
         cap_fps = max(grabber.fps, 1.0)
-        cap_fps = min(cap_fps, 1000.0)
-        base = 0.35 + cfg.strength * 0.28
-        decay_single = float(np.clip(base ** (120.0 / cap_fps), 0.0, 1))
-        decay = float(decay_single ** (1.0 / cfg.interp_steps))
 
         if frame is not None:
             if has_prev:
@@ -801,10 +837,9 @@ def main():
             blit_pass(raw_tex, prev_fbo)
             has_prev = True
             interp_ready = True
-
-        else:
-            if interp_ready:
-                accum_pass(interp_tex)
+        if not interp_ready:
+            glfw.swap_buffers(win)
+            continue
 
         result_tex = tex_b if ping else tex_a
         blit_pass(result_tex, dst_fbo=0)
@@ -816,16 +851,19 @@ def main():
             impl.render(imgui.get_draw_data())
 
         glfw.swap_buffers(win)
-
         now = time.perf_counter()
         dt = now - last_t
         last_t = now
         if dt > 0:
-            render_fps = (
-                (1 / dt)
-                if render_fps == 0
-                else render_fps + 0.05 * (1 / dt - render_fps)
-            )
+            render_fps = render_fps + 0.05 * (1.0 / dt - render_fps)
+
+        target_dt = 1.0 / max(cfg.fps_limit, 1.0)
+        elapsed = time.perf_counter() - frame_start
+        slack = target_dt - elapsed
+        if slack > 0.002:
+            time.sleep(slack - 0.0005)
+        while time.perf_counter() - frame_start < target_dt:
+            pass
 
     cfg.save()
     grabber.stop()
