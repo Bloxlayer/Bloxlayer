@@ -784,7 +784,7 @@ def main():
         cap_fps = max(grabber.fps, 1.0)
         cap_fps = min(cap_fps, 1000.0)
         base = 0.35 + cfg.strength * 0.28
-        decay_single = float(np.clip(base ** (75.0 / cap_fps), 0.0, 1))
+        decay_single = float(np.clip(base ** (120.0 / cap_fps), 0.0, 1))
         decay = float(decay_single ** (1.0 / cfg.interp_steps))
 
         if frame is not None:
