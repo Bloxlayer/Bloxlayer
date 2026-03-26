@@ -20,6 +20,11 @@
 
 </div>
 
+> [!IMPORTANT]
+> Bloxlayer currently supports **Windows 10 and above**.
+> **support for other OS is in the works**,
+> but it is not available yet.
+
 ## (FAQ)
 
 <details>
