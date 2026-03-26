@@ -462,10 +462,10 @@ def draw_panel(render_fps, grab_fps):
 
     imgui.same_line()
     for name, val in [
-        ("Light", 0.20),
-        ("Normal", 0.38),
+        ("Light", 0.25),
+        ("Normal", 0.45),
         ("Strong", 0.55),
-        ("Heavy", 0.72),
+        ("Heavy", 0.75),
     ]:
         active = abs(cfg.strength - val) < 0.02
         psc(imgui.COLOR_BUTTON, BTNON if active else BG3)
